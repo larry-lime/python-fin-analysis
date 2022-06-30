@@ -31,25 +31,31 @@
 
 ## General
 
-### Menu Tree
+### Menu Tree (Current)
+py fin_start.py
 ├── 1. Load Companies
 │  ├── 1. Manually input ticker symbols
 │  ├── 2. Read ticker symbols from tickers.csv
-│  ├── 3. 
-│  ├──  AAPL_financials_binary
-│  ├──  AAPL_stats.csv
-│  ├──  AAPL_stats.txt
-│  ├──  AAPL_stats_binary
-│  ├──  AAPL_wacc.csv
-│  └──  AAPL_wacc.txt
+│  └── 3. Exit Program
 ├── 2. Compare Companies
-│  ├──  GOOG_fin.csv
-│  ├──  GOOG_fin.txt
-│  ├──  GOOG_fin.xlsx
-│  ├──  GOOG_financials_binary
-│  ├──  GOOG_stats.csv
-│  ├──  GOOG_stats.txt
-│  ├──  GOOG_stats_binary
-│  ├──  GOOG_wacc.csv
-│  └──  GOOG_wacc.txt
+│  ├── Enter the ticker of the company you wish to compare
+│  ├── Type 'start' to compare company statistics
+│  └── Type 'all' to compare all companies
 └── 3. Exit Program
+
+### Menu Tree (Ideal)
+py fin_start.py
+├── 1. Load Companies
+│  ├── 1. Manually input ticker symbols
+│  ├── 2. Read ticker symbols from tickers folder
+│  └── 3. Exit Program
+├── 2. Compare Companies
+│  ├── 1. Enter the tickers of the companys you wish to compare
+│  ├── 2. Compare all companies
+│  ├── Enter the ticker of the company you wish to compare
+│  ├── Type 'start' to compare company statistics
+│  └── Type 'all' to compare all companies
+└── 3. Exit Program
+
+### Comments
+Something of note is that comparable analysis is done with companies that have similar attributes
