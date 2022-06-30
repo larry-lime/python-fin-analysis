@@ -2,9 +2,17 @@ import pandas as pd
 import os
 
 
-def list_companies():
-    parent_dir = "financials"
-    return [i for i in list(os.listdir(f"./{parent_dir}")) if os.path.isdir(f"{parent_dir}/{i}")] if parent_dir in os.listdir(".") else []
+def list_companies(parent_dir="financials"):
+    return (
+        [
+            company
+            for company in list(os.listdir(f"./{parent_dir}"))
+            if os.path.isdir(f"{parent_dir}/{company}")
+        ]
+        if parent_dir in os.listdir(".")
+        else []
+    )
+
 
 # Create an error log binary file in the current directory
 def error_log(e, parent_dir):
@@ -15,17 +23,19 @@ def error_log(e, parent_dir):
 
 
 # Write a function that reads tickers.csv
-def read_tickers():
-    # Change pwd to parent directory
-    os.chdir(os.getcwd())
+def read_tickers(
+    column_name=None,
+    tickers_dir="tickers",
+    ticker_file="company_tickers",
+):
 
     # Read tickers.csv
-    tickers_df = pd.read_csv("tickers.csv")
+    tickers_df = pd.read_csv(f"./{tickers_dir}/{ticker_file}.csv")
 
-    # Return tickers_df
-    column = list(tickers_df.columns)[0]
-
-    return [i.strip() for i in tickers_df[column]]
+    # Return values in a column if a column is given, else the return the values in the first column
+    if column_name:
+        return [i.strip() for i in tickers_df[column_name]]
+    return [i.strip() for i in tickers_df[list(tickers_df.columns)[0]]]
 
 
 def camel_to_normal(camel: str):
