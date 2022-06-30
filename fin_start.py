@@ -18,12 +18,16 @@ def main_menu():
     # Read Menu Input
     if menu_input == "1":
         load_companies()
+
     elif menu_input == "2":
         compare_companies()
+
     elif menu_input == "3":
         exit_menu()
+
     else:
-        invalid_input()
+        print("Invalid input!")
+        main_menu()
 
 
 # Submenu 1
@@ -69,6 +73,7 @@ def run_load(lst):
     for ticker in lst:
         company = Company(ticker)
         try:
+            # TODO Take a look at this and refactor this
             lst = [x[0].split("/")[-1] + "/" for x in os.walk(company._parent_dir)]
             if company._dir not in lst:
                 company.import_data("annual")
@@ -84,11 +89,7 @@ def run_load(lst):
             error_log(e, company._parent_dir)
 
 
-def invalid_input():
-    print("Invalid input!")
-    main_menu()
-
-
+# Menu Input 2
 def compare_companies():
     # Show companies in pwd
     lst = list_companies()
@@ -119,6 +120,7 @@ def compare_companies():
     main_menu()
 
 
+# Menu Input 3
 def exit_menu():
     print("Program Exited!")
 
