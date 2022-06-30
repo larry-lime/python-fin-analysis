@@ -4,74 +4,84 @@ from fin_utils import *
 
 
 def main_menu():
-    print("\nType the number corresponding to the desired action:")
-    # Menu display 1
+    # Menu Display
     menu_input = input(
         "\
+        \nType the number corresponding to the desired action:\
+        \n\
         \n1. Load companies\
         \n2. Compare companies\
         \n3. Exit Program\
         \n> "
     )
 
+    # Read Menu Input
     if menu_input == "1":
         load_companies()
-
     elif menu_input == "2":
         compare_companies()
-
     elif menu_input == "3":
         exit_menu()
-
     else:
         invalid_input()
 
 
+# Submenu 1
 def load_companies():
     lst = []
-    print("\nType the number corresponding to the desired action:")
-    # Menu Display 1 of Option 1
+
+    # Submenu 1 Display
     submenu_input = input(
-        "\n1. Manually input company ticker symbols\n2. Read ticker symbols from tickers.csv\n3. Exit Program\n> "
+        "\
+        \nType the number corresponding to the desired action:\
+        \n\
+        \n1. Manually input company ticker symbols\
+        \n2. Read ticker symbols from tickers.csv\
+        \n3. Exit Program\
+        \n> "
     )
-    if submenu_input == "1":
-        while True:
-            ticker = input("Enter the ticker of a company you wish to load: ").upper()
-            if ticker == "START":
-                break
-            lst.append(ticker)
-            print("\nCompanies ready to load:", lst)
-            print("Type 'start' to load new companies")
-
-    elif submenu_input == "2":
-        lst = read_tickers()
-
-    elif submenu_input != "3":
-        print("Ivalid Input!")
-        main_menu()
 
     if submenu_input in ["1", "2"]:
-        for ticker in lst:
-            company = Company(ticker)
-            try:
-                lst = [x[0].split("/")[-1] + "/" for x in os.walk(company._parent_dir)]
-                run_load(company, lst)
-
-            except Exception as e:
-                error_log(e, company._parent_dir)
+        # Read Submenu 1 Input
+        lst = manual_input(lst) if submenu_input == "1" else read_tickers()
+        run_load(lst)
         main_menu()
 
+    elif submenu_input == "3":
+        main_menu()
 
-def run_load(company, lst):
-    if company._dir not in lst:
-        company.import_data("annual")
-    company.load_binary_data()
-    company.convert_statements()
-    company.convert_statistics()
-    company.wacc()
-    company.save_as_xslx()
-    company.save_as_csv()
-    company.save_as_txt()
+    else:
+        print("Ivalid Input!")
+        load_companies()
+
+
+def manual_input(lst):
+    while True:
+        ticker = input("Enter the ticker of a company you wish to load: ").upper()
+        if ticker == "START":
+            return lst
+        lst.append(ticker)
+        print("\nCompanies ready to load:", lst)
+        print("Type 'start' to load new companies")
+
+
+def run_load(lst):
+    for ticker in lst:
+        company = Company(ticker)
+        try:
+            lst = [x[0].split("/")[-1] + "/" for x in os.walk(company._parent_dir)]
+            if company._dir not in lst:
+                company.import_data("annual")
+            company.load_binary_data()
+            company.convert_statements()
+            company.convert_statistics()
+            company.wacc()
+            company.save_as_xslx()
+            company.save_as_csv()
+            company.save_as_txt()
+
+        except Exception as e:
+            error_log(e, company._parent_dir)
 
 
 def invalid_input():
