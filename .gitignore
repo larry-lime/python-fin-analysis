@@ -1,6 +1,19 @@
+/*Directories*/
+__pycache__/
+
+/*Files*/
+Session.vim
+planning.md
+pyrightconfig.json
+error_log.txt
+
+/*Directory Files*/
 comparables/*
 financials/*
-Session.vim
-__pycache__/
+tickers/*
+
+/*Exceptions*/
 !financials/README.md
 !comparables/README.md
+!tickers/README.md
+!tickers/sample_tickers.csv

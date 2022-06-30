@@ -26,7 +26,7 @@ def error_log(e, parent_dir):
 def read_tickers(
     column_name=None,
     tickers_dir="tickers",
-    ticker_file="company_tickers",
+    ticker_file="sample_ticker%",
 ):
 
     # Read tickers.csv
@@ -51,8 +51,10 @@ def camel_to_normal(camel: str):
             return camel
         return "".join(lst).title()
 
+
 def main():
     print(list_companies())
+
 
 if __name__ == "__main__":
     main()
