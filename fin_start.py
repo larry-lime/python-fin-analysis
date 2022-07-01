@@ -1,24 +1,41 @@
+import os
 from fin_analysis import *
 from fin_compare import *
 from fin_utils import *
 
 
+# TODO As the project gets larger, break up this file into an analysis and compare CMD
 class Start:
     def __init__(self) -> None:
         self.company_list = []
 
-    def main_menu(self):
+    def main_menu(self, message=None):
         # Menu Display
-        menu_input = input(
-            "\
-            \n┌─Instructions────────────────────────────────────────┐\
-            \n│Type the number corresponding to the desired action: │\
-            \n└─────────────────────────────────────────────────────┘\
-            \n1. Load companies\
-            \n2. Compare companies\
-            \n3. Exit Program\
-            \n> "
-        )
+        if message == "inputInvalid":
+            menu_input = input(
+                "\
+                \n┌─Instructions────────────────────────────────────────┐\
+                \n│Type the number corresponding to the desired action: │\
+                \n└─────────────────────────────────────────────────────┘\
+                \n┌─Message─────────────────────────────────────────────┐\
+                \n│Input Invalid!                                       │\
+                \n└─────────────────────────────────────────────────────┘\
+                \n1. Load companies\
+                \n2. Compare companies\
+                \n3. Exit Program\
+                \n> "
+            )
+        else:
+            menu_input = input(
+                "\
+                \n┌─Instructions────────────────────────────────────────┐\
+                \n│Type the number corresponding to the desired action: │\
+                \n└─────────────────────────────────────────────────────┘\
+                \n1. Load companies\
+                \n2. Compare companies\
+                \n3. Exit Program\
+                \n> "
+            )
 
         # Read Menu Input
         if menu_input == "1":
@@ -31,26 +48,40 @@ class Start:
             self.exit_menu()
 
         else:
-            self.invalid_input(self.main_menu)
+            self.invalid_input("inputInvalid", self.main_menu)
 
     # Submenu 1
-    def load_companies(self):
+    def load_companies(self, message=None):
 
-        # Submenu 1 Display
-        submenu_input = input(
-            "\
-            \n┌─Instructions────────────────────────────────────────┐\
-            \n│Type the number corresponding to the desired action: │\
-            \n└─────────────────────────────────────────────────────┘\
-            \n1. Manually input company ticker symbols\
-            \n2. Read ticker symbols from tickers.csv\
-            \n3. Go Back\
-            \n4. Exit Program\
-            \n> "
-        )
+        if message == "inputInvalid":
+            submenu_input = input(
+                "\
+                \n┌─Instructions────────────────────────────────────────┐\
+                \n│Type the number corresponding to the desired action: │\
+                \n└─────────────────────────────────────────────────────┘\
+                \n┌─Message─────────────────────────────────────────────┐\
+                \n│Input Invalid!                                       │\
+                \n└─────────────────────────────────────────────────────┘\
+                \n1. Manually input company ticker symbols\
+                \n2. Read ticker symbols from tickers.csv\
+                \n3. Go Back\
+                \n4. Exit Program\
+                \n> "
+            )
+        else:
+            submenu_input = input(
+                "\
+                \n┌─Instructions────────────────────────────────────────┐\
+                \n│Type the number corresponding to the desired action: │\
+                \n└─────────────────────────────────────────────────────┘\
+                \n1. Manually input company ticker symbols\
+                \n2. Read ticker symbols from tickers.csv\
+                \n3. Go Back\
+                \n4. Exit Program\
+                \n> "
+            )
 
         if submenu_input in ["1", "2"]:
-            # Read Submenu 1 Input
             company_list = (
                 self.manual_input() if submenu_input == "1" else read_tickers()
             )
@@ -64,7 +95,7 @@ class Start:
             self.exit_menu()
 
         else:
-            self.invalid_input(self.load_companies)
+            self.invalid_input("inputInvalid", self.load_companies)
 
     def manual_input(self):
 
@@ -102,18 +133,18 @@ class Start:
             self.exit_menu()
 
         else:
-            self.company_list.append(user_input.upper()) if user_input.upper() not in self.company_list else None
+            self.company_list.append(
+                user_input.upper()
+            ) if user_input.upper() not in self.company_list else None
 
-        print("\nCompanies ready to load:", self.company_list)
         return self.manual_input()
 
-    def run_load(self, lst):
-        for ticker in lst:
+    def run_load(self, company_list):  # sourcery skip: class-extract-method
+        for ticker in company_list:
             company = Company(ticker)
             try:
-                # TODO Take a look at this and refactor this
-                lst = [x[0].split("/")[-1] + "/" for x in os.walk(company._parent_dir)]
-                if company._dir not in lst:
+                company_list = list_companies()
+                if company.ticker not in company_list:
                     company.import_data("annual")
                 company.load_binary_data()
                 company.convert_statements()
@@ -156,13 +187,17 @@ class Start:
             self.run_compare(companies)
         self.main_menu()
 
-    def invalid_input(self, function=None):
+    def invalid_input(self, message=None, function=None):
         """
         Prints -> "Invalid Function" and calls the name of the function passed
         """
-        print("Invalid input!")
-        if function:
+        if function and message:
+            function(message)
+        elif function:
+            print("Invalid Input!")
             function()
+        else:
+            print("Invalid Input!")
 
     def exit_menu(self):
         print("Program Exited!")
