@@ -135,9 +135,8 @@ class Start:
                 # TODO Change the nine value so it counts how many files there are in a sample directory or not
                 if company.ticker not in loaded_companies or count_files(company_dir=company._dir) < 9:
                     company.import_data("annual")
-                company.load_binary_data()
-                company.convert_statements()
-                company.convert_statistics()
+                company.binary_files(save=True)
+                company.binary_files(load=True)
                 company.wacc()
                 company.save_as_xslx()
                 company.save_as_csv()

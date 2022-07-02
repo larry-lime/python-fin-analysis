@@ -5,136 +5,74 @@ import pickle as pk
 import os
 
 
+# TODO think about implementing threading to change the way this operates
 class Company:
     def __init__(self, ticker: str):
 
         # Set the ticker
         self.ticker = ticker
 
-        # Store Statements as attributes
-        self._bl = pd.DataFrame()
-        self._cf = pd.DataFrame()
-        self._inc = pd.DataFrame()
-        self._fin = pd.DataFrame()
-        self._wacc = pd.DataFrame()
-        self._file_count = 0
+        # Store financial statements and key statistics in a DataFrame
+        self.fin_df = pd.DataFrame()
+        self.stats = pd.DataFrame()
 
-        # Store stats as attributes
-        self._stats = pd.DataFrame()
-        self._current_price = pd.DataFrame()
-        self._pe = pd.DataFrame()
-        self._mkt_cap = pd.DataFrame()
-        self._div_yield = pd.DataFrame()
+        # Store models as attributes
+        self._wacc = pd.DataFrame()
+        self._DCF = pd.DataFrame()
+
+        # Path to files and directories
         self._parent_dir = os.getcwd()
         self._folder = "financials/"
+        self._dir = f"{ticker}/"
+        self._path = os.path.join(self._parent_dir, self._folder, self._dir)
+        print("self._path:", self._path)
+        print(
+            "something else:", os.path.join(self._parent_dir, "financials", self.ticker)
+        )
 
         # Create the folder if it doesn't exist
         if not os.path.isdir(self._folder):
             os.mkdir(self._folder)
 
-        # Change working directory to the financials folder
-        self._dir = f"{ticker}/"
-        # Store File Directory Information
-        self._path = os.path.join(self._parent_dir, self._folder, self._dir)
-
-    # Import and save Yahoo Financials data as binary files
-    def import_data(self, annual_or_quarterly: str):
-
-        if not os.path.isdir(self._path):
-            os.mkdir(self._path)
-
-        # Print a start mesage
-        print()
-        print(
-            f"Fetching ({self.ticker}) Data from Yahoo Finance (This may take a while so grab a snack or something)..."
-        )
-
-        # Create the YahooFinancials object
+    def import_data(self, a_or_q: str):
+        """
+        Import company financial statements and key statistics
+        """
+        # Create a company directory and initiate YahooFinancials
+        None if os.path.isdir(self._path) else os.mkdir(self._path)
         yf = YahooFinancials(self.ticker)
 
-        print(f"Importing ({self.ticker}) Financial Data...")
-        # Get the financial statements
-        # This is a dictionary
-        self._fin = yf.get_financial_stmts(
-            annual_or_quarterly, ["balance", "income", "cash"]
-        )
-        print("Financial statements done importing!")
-
-        print(f"Importing ({self.ticker}) Statistics Data...")
-        # Get the key statistics
-        stats = {
+        # Import data with the API
+        fin_dic = yf.get_financial_stmts(a_or_q, ["balance", "income", "cash"])
+        stats_dic = {
             "stats": yf.get_key_statistics_data(),
-            "price" : yf.get_current_price(),
+            "price": yf.get_current_price(),
             "mkt_cap": yf.get_market_cap(),
             "pe_ratio": yf.get_pe_ratio(),
             "div_yield": yf.get_dividend_yield(),
         }
-        print("Key statistics done importing!")
 
-        # Save the pandas DFs instead of the dictionaries as binary files
-        # Give the binary files names
-        financials_file_name = f"{self.ticker}_financials_binary"
-        stats_file_name = f"{self.ticker}_stats_binary"
+        # Convert financial statements and key statistics to dataframes
+        self.fin_df = self.__convert_fin(fin_dic)
+        self.stats = self.__convert_stats(stats_dic)
 
-        # Save the financial statements as binary files
-        with open(self._path + financials_file_name, "wb") as file_object:
-            pk.dump(self._fin, file_object)
-        with open(self._path + stats_file_name, "wb") as file_object:
-            pk.dump(stats, file_object)
-
-        # Print a confirmation message
-        print()
-        print(f"File: {financials_file_name} created in {self._path}")
-        print(f"File: {stats_file_name} created in {self._path}")
-
-    # Load company financial and statistics data from binary files
-    def load_binary_data(self):
-
-        # Print a start mesage
-        print(f"\nLoading ({self.ticker}) Data...")
-
-        # Assign which binary files to load
-        financials_file_name = f"{self.ticker}_financials_binary"
-        stats_file_name = f"{self.ticker}_stats_binary"
-
-        # Load the financial statements as dictionaries
-        # TODO Stop redefining self._fin so many times. It's confusing. All the errors in this file are because I keep redefining this variable
-        with open(self._path + financials_file_name, "rb") as fin:
-            self._fin = pk.load(fin)
-        with open(self._path + stats_file_name, "rb") as stats:
-            stats = pk.load(stats)
-
-        # Unpack the dictionaries
-        self._stats = stats["stats"]
-        self._current_price = stats["price"]
-        self._mkt_cap = stats["mkt_cap"]
-        self._pe = stats["pe_ratio"]
-        self._div_yield = stats["div_yield"]
-
-        # Print a confirmation message
-        print("Data done loading!")
-
-    def convert_statements(self):
-
-        # Print a start mesage
-        print("\nConverting financial statements...")
-
-        # Iterate through the nested dictionary and assign values to new DataFrame
-        fin = self._fin
-        for counter, i in enumerate(fin, start=1):
+    # TODO Refactor this if I can or delete it when I use a different API
+    def __convert_fin(self, fin_dic):
+        """
+        Convert financial statements from dictionary to dataframe
+        """
+        for counter, i in enumerate(fin_dic, start=1):
             csv_df = pd.DataFrame()
-            for j in fin[i].keys():
-                for k in fin[i][j]:
+            for j in fin_dic[i].keys():
+                for k in fin_dic[i][j]:
                     for d in k.keys():
                         csv_series = pd.DataFrame(
                             list(k[d].values()),
                             index=list(k[d].keys()),
                             columns=[f"{j} {d}"],
                         )
-
                         csv_df = pd.concat([csv_df, csv_series], axis=1)
 
-            # Assign the DataFrames to attribute
             if counter == 1:
                 self._bl = csv_df
             elif counter == 2:
@@ -142,63 +80,72 @@ class Company:
             elif counter == 3:
                 self._cf = csv_df
 
-        # Concatenate the bl, inc, and cf DataFrames into one
-        # Pandas Dataframe
-        self._fin = pd.concat([self._bl, self._inc, self._cf], axis=0)
+        # Concatenate the bl, inc, and cf dataframes
+        return pd.concat([self._bl, self._inc, self._cf], axis=0)
 
-        # Drop duplicates from the dataframe
-        # self._fin = self._fin.drop_duplicates(subset=list(self._fin)[0],inplace=False,keep='first')
+    def __convert_stats(self, stats_dic):
+        """
+        Convert key statistics data from dictionary to dataframe
+        """
+        extra_stats = self.__calculate_additional_stats(stats_dic)
+        og_stats = pd.DataFrame.from_dict(
+            stats_dic["stats"][self.ticker], orient="index", columns=[self.ticker]
+        )
+        return pd.concat([extra_stats, og_stats], axis=0)
 
-        # Print a confirmation message
-        print("Financial statements done converting!")
+    def binary_files(self, save: bool = False, load: bool = False):
+        """
+        Save or load company financial and key statistics binaries
+        """
+        fin_name = f"{self.ticker}_financials_binary"
+        stats_name = f"{self.ticker}_stats_binary"
 
-    # Convert self._stats from a dictionary to a pandas DataFrame
-    def convert_statistics(self):
+        if save:
+            with open(self._path + fin_name, "wb") as fin:
+                pk.dump(self.fin_df, fin)
+            with open(self._path + stats_name, "wb") as stats:
+                pk.dump(self.stats, stats)
 
-        # Print a start mesage
-        print("\nConverting key statistics...")
+        if load:
+            with open(self._path + fin_name, "rb") as fin:
+                self.fin_df = pk.load(fin)
+            with open(self._path + stats_name, "rb") as stats:
+                self.stats = pk.load(stats)
 
-        # DE Ratio
-        # totalStockholderEquity = self._fin['totalStockholderEquity'][list(self._fin)[0]]
-        totalAssets = self._fin.loc["totalAssets", list(self._fin)[0]]
-        totalLiabilities = self._fin.loc["totalLiab", list(self._fin)[0]]
+    def __calculate_additional_stats(self, stats_dic):
+        # TODO Refactor the following expressions for readability
+        # Debt to Equity Ratio
+        totalAssets = self.fin_df.loc["totalAssets", list(self.fin_df)[0]]
+        totalLiabilities = self.fin_df.loc["totalLiab", list(self.fin_df)[0]]
         totalStockholderEquity = totalAssets - totalLiabilities
-        debtToEquity = (
-            totalLiabilities / totalStockholderEquity
-        )  # This can use some work
+        debtToEquity = totalLiabilities / totalStockholderEquity
 
-        # ROE
-        netIncome = list(self._fin.loc["netIncome", list(self._fin)[0]])[0]
+        # Return on equity (ROE)
+        netIncome = list(self.fin_df.loc["netIncome", list(self.fin_df)[0]])[0]
         returnOnEquity = netIncome / totalStockholderEquity
 
-        # GP Margin
-        # grossProfit = list(self._fin.loc["grossProfit", list(self._fin)[0]])[0]
-        grossProfit = self._fin.loc["grossProfit", list(self._fin)[0]]
-        # totalRevenue = list(self._fin.loc["totalRevenue", list(self._fin)[0]])[0]
-        totalRevenue = self._fin.loc["totalRevenue", list(self._fin)[0]]
-        GP_margin = grossProfit / totalRevenue
+        # Gross Profit Margin
+        grossProfit = self.fin_df.loc["grossProfit", list(self.fin_df)[0]]
+        totalRevenue = self.fin_df.loc["totalRevenue", list(self.fin_df)[0]]
+        gp_margin = grossProfit / totalRevenue
 
-        # NP Margin
-        netIncome = list(self._fin.loc["netIncome", list(self._fin)[0]])[0]
-        NP_margin = netIncome / totalRevenue
+        # Net Profit Margin
+        netIncome = list(self.fin_df.loc["netIncome", list(self.fin_df)[0]])[0]
+        np_margin = netIncome / totalRevenue
 
         # EBIT
-        ebit = self._fin.loc["ebit", list(self._fin)[0]]
+        ebit = self.fin_df.loc["ebit", list(self.fin_df)[0]]
 
-        # Price To Sales
-        # ps = self._mkt_cap / totalRevenue
-
-        # Create a dataframe with integers self._pe and self._mkt_cap
-        temp = pd.DataFrame(
+        return pd.DataFrame(
             [
-                self._current_price,
-                self._pe,
-                self._mkt_cap,
-                self._div_yield,
+                stats_dic["price"],
+                stats_dic["pe_ratio"],
+                stats_dic["mkt_cap"],
+                stats_dic["div_yield"],
                 debtToEquity,
                 returnOnEquity,
-                GP_margin,
-                NP_margin,
+                gp_margin,
+                np_margin,
                 ebit,
             ],
             index=[
@@ -215,36 +162,21 @@ class Company:
             columns=[self.ticker],
         )
 
-        # Convert dictionary to DataFrame
-        self._stats = pd.DataFrame.from_dict(
-            self._stats[self.ticker], orient="index", columns=[self.ticker]
-        )
-
-        # Append the temp DataFrame to the self._stats DataFrame
-        self._stats = pd.concat([temp, self._stats], axis=0)
-
-        # Print a confirmation message
-        print("Key statistics done converting!")
-
+    # TODO Move this to another file
     def wacc(self):
-        self.risk_free_rate = 0.02828
-        self.market_rate_return = 0.105
-        self.tax_rate = 0.21
+        risk_free_rate = 0.02828
+        market_rate_return = 0.105
+        tax_rate = 0.21
 
-        ticker = self.ticker
-        # self._dir = f"{ticker}_fin/"
-        self._dir = f"{ticker}/"
         os.chdir(self._folder + self._dir)
 
-        stats_df = self._stats
-        beta = float(stats_df[ticker]["beta"])
-        market_risk_premium = self.market_rate_return - self.risk_free_rate
+        beta = float(self.stats[self.ticker]["beta"])
+        market_risk_premium = market_rate_return - risk_free_rate
         # format the market risk premium to 2 decimal places
-        fin_df = self._fin
-        debt = float(fin_df[list(fin_df)[0]]["longTermDebt"])
-        equity = float(stats_df[ticker]["marketCap"])
-        ebit = float(fin_df[list(fin_df)[0]]["ebit"])
-        interestExpense = float(fin_df[list(fin_df)[0]]["interestExpense"])
+        debt = float(self.fin_df[list(self.fin_df)[0]]["longTermDebt"])
+        equity = float(self.stats[self.ticker]["marketCap"])
+        ebit = float(self.fin_df[list(self.fin_df)[0]]["ebit"])
+        interestExpense = float(self.fin_df[list(self.fin_df)[0]]["interestExpense"])
         interest_coverage_ratio = ebit / interestExpense
         credit_spread = 0
 
@@ -280,9 +212,9 @@ class Company:
             credit_spread = 0.67 / 100
 
         V = equity + debt
-        cost_of_debt = self.risk_free_rate + credit_spread
-        cost_of_debt_after_tax = cost_of_debt * (1 - self.tax_rate)
-        cost_of_equity = self.risk_free_rate + beta * market_risk_premium
+        cost_of_debt = risk_free_rate + credit_spread
+        cost_of_debt_after_tax = cost_of_debt * (1 - tax_rate)
+        cost_of_equity = risk_free_rate + beta * market_risk_premium
 
         wacc = (equity / V) * cost_of_equity + (debt / V) * cost_of_debt_after_tax
         self._wacc = pd.DataFrame(
@@ -290,9 +222,9 @@ class Company:
                 wacc,
                 beta,
                 cost_of_debt,
-                self.tax_rate,
+                tax_rate,
                 cost_of_debt_after_tax,
-                self.risk_free_rate,
+                risk_free_rate,
                 cost_of_equity,
                 debt,
                 equity,
@@ -345,16 +277,16 @@ class Company:
             # Save concatenated financial statements as xlsx files
         )
         fin_df = pd.DataFrame(
-            self._fin.values,
-            columns=self._fin.columns,
-            index=[camel_to_normal(i) for i in self._fin.index],
+            self.fin_df.values,
+            columns=self.fin_df.columns,
+            index=[camel_to_normal(i) for i in self.fin_df.index],
         )
 
         # Save key statistics as xlsx file
         stats_df = pd.DataFrame(
-            self._stats.values,
-            columns=self._stats.columns,
-            index=[camel_to_normal(i) for i in self._stats.index],
+            self.stats.values,
+            columns=self.stats.columns,
+            index=[camel_to_normal(i) for i in self.stats.index],
         )
 
         wacc_df = pd.DataFrame(
@@ -367,6 +299,7 @@ class Company:
         xlsx_name = f"{self.ticker}_fin.xlsx"
 
         # Create the workbook
+        # TODO Figureo out why I'm getting an error here
         with pd.ExcelWriter(self._path + xlsx_name) as writer:
 
             # Save the dataframes as workbook sheets
@@ -392,14 +325,17 @@ class Company:
         csv_wacc_name = f"{self.ticker}_wacc.csv"
 
         # Save concatenated financial statements as csv files
-        self._fin.to_csv(self._path + csv_fin_name, index=True)
-        self._stats.to_csv(self._path + csv_stats_name, index=True)
+        self.fin_df.to_csv(self._path + csv_fin_name, index=True)
+        self.stats.to_csv(self._path + csv_stats_name, index=True)
         self._wacc.to_csv(self._path + csv_wacc_name, index=True)
 
         # Print a confirmation message
-        print(f"File: {csv_fin_name} created in {self._path}")
-        print(f"File: {csv_stats_name} created in {self._path}")
-        print(f"File: {csv_wacc_name} created in {self._path}")
+        print(
+            f"\
+            \nFile: {csv_fin_name} created in {self._path}\
+            \nFile: {csv_stats_name} created in {self._path}\
+            \nFile: {csv_wacc_name} created in {self._path}"
+        )
 
     # Convert financial statements and key statsitics to text files
     def save_as_txt(self):
@@ -408,34 +344,33 @@ class Company:
         print("\nSaving financial and statistics data as TXT...")
 
         # Convert fin and stats from pandas DataFrame to string
-        fin_str = self._fin.to_string()
-        stats_str = self._stats.to_string()
+        fin_str = self.fin_df.to_string()
+        stats_str = self.stats.to_string()
         wacc_str = self._wacc.to_string()
 
         # Write fin, stats, and wacc to text file
         with open(self._path + f"{self.ticker}_fin.txt", "w") as file:
             file.write(fin_str)
-            print(f"{self.ticker}_fin.txt created in {self._path}")
-
         with open(self._path + f"{self.ticker}_stats.txt", "w") as file:
-            print(f"{self.ticker}_stats.txt created in {self._path}")
             file.write(stats_str)
-
         with open(self._path + f"{self.ticker}_wacc.txt", "w") as file:
-            print(f"{self.ticker}_wacc.txt created in {self._path}")
             file.write(wacc_str)
 
         # Print a confirmation message
-        print("Data done writing!")
+        print(
+            f"\
+            \nFile: {self.ticker}_fin.txt created in {self._path}\
+            \nFile: {self.ticker}_stats.txt created in {self._path}\
+            \nFile: {self.ticker}_wacc.txt created in {self._path}"
+        )
 
 
 if __name__ == "__main__":
     company = Company("DOX")
     company.import_data("annual")
-    company.load_binary_data()
-    company.convert_statements()
-    company.convert_statistics()
+    company.binary_files(save=True)
+    company.binary_files(load=True)
     company.wacc()
     company.save_as_xslx()
     company.save_as_csv()
-    # company.save_as_txt()
+    company.save_as_txt()
