@@ -1,4 +1,4 @@
-from fin_utils import *
+from utils import *
 from yahoofinancials import YahooFinancials
 import pandas as pd
 import pickle as pk
@@ -17,9 +17,11 @@ class Company:
         self._inc = pd.DataFrame()
         self._fin = pd.DataFrame()
         self._wacc = pd.DataFrame()
+        self._file_count = 0
 
         # Store stats as attributes
         self._stats = pd.DataFrame()
+        self._current_price = pd.DataFrame()
         self._pe = pd.DataFrame()
         self._mkt_cap = pd.DataFrame()
         self._div_yield = pd.DataFrame()
@@ -62,12 +64,14 @@ class Company:
         # Get the key statistics
         stats = {
             "stats": yf.get_key_statistics_data(),
+            "price" : yf.get_current_price(),
             "mkt_cap": yf.get_market_cap(),
             "pe_ratio": yf.get_pe_ratio(),
             "div_yield": yf.get_dividend_yield(),
         }
         print("Key statistics done importing!")
 
+        # Save the pandas DFs instead of the dictionaries as binary files
         # Give the binary files names
         financials_file_name = f"{self.ticker}_financials_binary"
         stats_file_name = f"{self.ticker}_stats_binary"
@@ -102,6 +106,7 @@ class Company:
 
         # Unpack the dictionaries
         self._stats = stats["stats"]
+        self._current_price = stats["price"]
         self._mkt_cap = stats["mkt_cap"]
         self._pe = stats["pe_ratio"]
         self._div_yield = stats["div_yield"]
@@ -109,8 +114,6 @@ class Company:
         # Print a confirmation message
         print("Data done loading!")
 
-    # Convert self._fin from a dictionary to a pandas DataFrame
-    # TODO Refactor this function and understand it
     def convert_statements(self):
 
         # Print a start mesage
@@ -188,6 +191,7 @@ class Company:
         # Create a dataframe with integers self._pe and self._mkt_cap
         temp = pd.DataFrame(
             [
+                self._current_price,
                 self._pe,
                 self._mkt_cap,
                 self._div_yield,
@@ -198,6 +202,7 @@ class Company:
                 ebit,
             ],
             index=[
+                "currentPrice",
                 "peRatio",
                 "marketCap",
                 "divYield",

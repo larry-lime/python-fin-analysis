@@ -1,20 +1,20 @@
-import os
-from fin_analysis import *
-from fin_compare import *
-from fin_utils import *
+from analysis import *
+from compare import *
+from utils import *
 
 
 # TODO As the project gets larger, break up this file into an analysis and compare CMD
 class Start:
     def __init__(self) -> None:
-        self.company_list = []
+        self.load_company_list = []
+        self.compare_company_list = []
 
     def main_menu(self, message=None):
         # Menu Display
         if message == "inputInvalid":
             menu_input = input(
                 "\
-                \n┌─Instructions────────────────────────────────────────┐\
+                \n┌─Main Menu───────────────────────────────────────────┐\
                 \n│Type the number corresponding to the desired action: │\
                 \n└─────────────────────────────────────────────────────┘\
                 \n┌─Message─────────────────────────────────────────────┐\
@@ -28,7 +28,7 @@ class Start:
         else:
             menu_input = input(
                 "\
-                \n┌─Instructions────────────────────────────────────────┐\
+                \n┌─Main Menu───────────────────────────────────────────┐\
                 \n│Type the number corresponding to the desired action: │\
                 \n└─────────────────────────────────────────────────────┘\
                 \n1. Load companies\
@@ -40,13 +40,10 @@ class Start:
         # Read Menu Input
         if menu_input == "1":
             self.load_companies()
-
         elif menu_input == "2":
             self.compare_companies()
-
         elif menu_input == "3":
             self.exit_menu()
-
         else:
             self.invalid_input("inputInvalid", self.main_menu)
 
@@ -56,7 +53,7 @@ class Start:
         if message == "inputInvalid":
             submenu_input = input(
                 "\
-                \n┌─Instructions────────────────────────────────────────┐\
+                \n┌─Load Companies──────────────────────────────────────┐\
                 \n│Type the number corresponding to the desired action: │\
                 \n└─────────────────────────────────────────────────────┘\
                 \n┌─Message─────────────────────────────────────────────┐\
@@ -71,7 +68,7 @@ class Start:
         else:
             submenu_input = input(
                 "\
-                \n┌─Instructions────────────────────────────────────────┐\
+                \n┌─Load Companies──────────────────────────────────────┐\
                 \n│Type the number corresponding to the desired action: │\
                 \n└─────────────────────────────────────────────────────┘\
                 \n1. Manually input company ticker symbols\
@@ -82,18 +79,13 @@ class Start:
             )
 
         if submenu_input in ["1", "2"]:
-            company_list = (
-                self.manual_input() if submenu_input == "1" else read_tickers()
-            )
-            self.run_load(company_list)
+            load_list = self.manual_input() if submenu_input == "1" else read_tickers()
+            self.run_load(load_list)
             self.main_menu()
-
         elif submenu_input == "3":
             self.main_menu()
-
         elif submenu_input == "4":
             self.exit_menu()
-
         else:
             self.invalid_input("inputInvalid", self.load_companies)
 
@@ -101,41 +93,37 @@ class Start:
 
         user_input = input(
             f"\
-                \n┌─Instructions────────────────────────────────────────┐\
-                \n│Type the ticker of the company you wish to load      │\
-                \n│                                                     │\
-                \n│                        OR                           │\
-                \n│                                                     │\
-                \n│Type the number corresponding to the desired action: │\
-                \n└─────────────────────────────────────────────────────┘\
-                \nCompanies ready to load: {self.company_list}\
-                \n1. Start loading company data\
-                \n2. Undo last entry\
-                \n3. Clear company list\
-                \n4. Go Back\
-                \n5. Exit Program\
-                \n> "
+            \n┌─Manual Input────────────────────────────────────────┐\
+            \n│Type the ticker of the company you wish to load:     │\
+            \n│                                                     │\
+            \n│                        OR                           │\
+            \n│                                                     │\
+            \n│Type the number corresponding to the desired action: │\
+            \n└─────────────────────────────────────────────────────┘\
+            \nCompanies ready to load: {self.load_company_list}\
+            \n1. Start loading company data\
+            \n2. Undo last entry\
+            \n3. Clear company list\
+            \n4. Go Back\
+            \n5. Exit Program\
+            \n> "
         )
 
         if user_input == "1":
-            return self.company_list
-
+            return self.load_company_list
         elif user_input == "2":
-            self.company_list.pop()
-
+            self.load_company_list.pop()
         elif user_input == "3":
-            self.company_list.clear()
-
+            self.load_company_list.clear()
         elif user_input == "4":
             self.load_companies()
-
         elif user_input == "5":
             self.exit_menu()
 
         else:
-            self.company_list.append(
+            self.load_company_list.append(
                 user_input.upper()
-            ) if user_input.upper() not in self.company_list else None
+            ) if user_input.upper() not in self.load_company_list else None
 
         return self.manual_input()
 
@@ -143,8 +131,9 @@ class Start:
         for ticker in company_list:
             company = Company(ticker)
             try:
-                company_list = list_companies()
-                if company.ticker not in company_list:
+                loaded_companies = list_companies()
+                # TODO Change the nine value so it counts how many files there are in a sample directory or not
+                if company.ticker not in loaded_companies or count_files(company_dir=company._dir) < 9:
                     company.import_data("annual")
                 company.load_binary_data()
                 company.convert_statements()
@@ -159,33 +148,62 @@ class Start:
 
     # Menu Input 2
     def compare_companies(self):
-        # Show companies in pwd
-        lst = list_companies()
-        companies = []
-        print("\nThese are currently the companies you can compare:", lst)
-        ticker = input(
-            "\
-                \nEnter the ticker of the company you wish to compare\n\
-                \nType 'start' to compare company statistics\
-                \nType 'all' to compare all companies\
-                \nType 'stop' to stop comparing\
-                \n> "
-        ).upper()
+        company_list = list_companies()
+        # TODO Fix the bug that occurs when I undo the last entry
+        # Put this task on hold and instead work on the actual final product
+        # Take into account how people want to compare companies
+        # It's easiest for me to give people a directory name containing
+        # Containing all the countries they want to compare
+        # This will give me more room for improvement
+        # How the folders get into that directory is not my problem
+        submenu_input = input(
+            f"\
+            \n┌─Compare Companies───────────────────────────────────┐\
+            \n│Type the ticker of the company you wish to compare:  │\
+            \n│                                                     │\
+            \n│                          OR                         │\
+            \n│                                                     │\
+            \n│Type the number corresponding to the desired action: │\
+            \n└─────────────────────────────────────────────────────┘\
+            \nAvailable Companies: {company_list}\
+            \nCompare companies in: directory\
+            \nCompanies ready to compare: {self.compare_company_list}\
+            \n1. Start comparable analysis\
+            \n2. Compare all available companies\
+            \n3. Undo last entry\
+            \n4. Go Back\
+            \n5. Exit Program\
+            \n> "
+        )
 
-        while ticker not in ["START", "STOP"]:
-            if ticker == "ALL":
-                companies = lst
-                break
-            else:
-                companies.append(ticker)
-                print("\nThese are currently the companies you can compare:", lst)
-                print("Current companies to be compared:", companies)
-                ticker = input(
-                    "\nEnter the ticker of the companys you wish to compare\nType 'start' when all companies are entered\nType 'stop' to stop comparing\n> "
-                ).upper()
-        if ticker != "STOP":
-            self.run_compare(companies)
-        self.main_menu()
+        if submenu_input in ["1", "2"]:
+            comparable_list = (
+                self.compare_company_list if submenu_input == "1" else company_list
+            )
+            self.run_compare(comparable_list)
+            self.main_menu()
+        elif submenu_input == "3":
+            # self.compare_company_list.pop() if self.compare_company_list else None
+            self.compare_company_list.pop()
+        elif submenu_input == "4":
+            self.main_menu()
+        elif submenu_input == "5":
+            self.exit_menu()
+        else:
+            self.compare_company_list.append(
+                submenu_input.upper()
+            ) if submenu_input.upper() not in self.compare_company_list else None
+
+        self.compare_companies()
+
+    def run_compare(self, companies):
+        compare = Compare(companies)
+        compare.combine()
+        compare.clean()
+        compare.save_as_xslx()
+        compare.save_as_csv()
+        compare.save_as_txt()
+        print("Done comparing companies!")
 
     def invalid_input(self, message=None, function=None):
         """
@@ -202,15 +220,6 @@ class Start:
     def exit_menu(self):
         print("Program Exited!")
         exit()
-
-    def run_compare(self, companies):
-        compare = Compare(companies)
-        compare.combine()
-        compare.clean()
-        compare.save_as_xslx()
-        compare.save_as_csv()
-        compare.save_as_txt()
-        print("Done comparing companies!")
 
 
 if __name__ == "__main__":

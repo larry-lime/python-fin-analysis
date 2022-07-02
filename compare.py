@@ -1,5 +1,5 @@
 import itertools
-from fin_utils import *
+from utils import *
 import pandas as pd
 import os
 
@@ -35,6 +35,7 @@ class Compare:
                 self.stats_compare = pd.concat([self.stats_compare, stats_df], axis=1)
 
             except Exception as error:
+                # TODO trigger the error log in the same way that analysis does
                 error_log(error, self.parent_dir)
 
             try:
