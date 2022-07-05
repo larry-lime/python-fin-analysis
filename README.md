@@ -1,4 +1,5 @@
 # Python Financial Analyer
+![Cartoon Python](cartoon_python_learning_about_the_stock_market.png) 
 
 ## Data Importer
 - [ ]  Use API calls to import data from web resources
